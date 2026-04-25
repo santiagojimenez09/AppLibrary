@@ -1,0 +1,8 @@
+CREATE DATABASE dblibrary;
+USE dblibrary;
+
+CREATE TABLE book(
+	id int PRIMARY KEY AUTO_INCREMENT,
+    tittle varchar(50),
+    price double
+);

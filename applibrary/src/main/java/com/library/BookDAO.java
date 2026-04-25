@@ -52,7 +52,7 @@ public class BookDAO {
         return list;
     }
 
-    public Book findById (int id) {
+    public Book findById (long id) {
 
         String sql = "SELECT * FROM book WHERE id = ?";
         Book book = null;
@@ -90,6 +90,22 @@ public class BookDAO {
                 ps.setString(1, book.getTittle());
                 ps.setDouble(2, book.getPrice());
                 ps.setLong(3, book.getId());
+                ps.executeUpdate();
+            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+    } 
+
+    public void delete (int id){
+
+        String sql = "DELETE FROM book WHERE id=?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)){
+
+                ps.setInt(1, id);
                 ps.executeUpdate();
             
         } catch (Exception e) {

@@ -1,0 +1,444 @@
+--- script base de datos en mysql dblibrary ---
+Create DATABASE dblibrary;
+Use dblibrary;
+Create Table book(
+    id int primary key AUTO_INCREMENT,
+    title varchar(50),
+    price double
+    );
+
+--- pom.xml ---
+...
+<dependencies>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.3.0</version>
+        </dependency>
+    </dependencies>
+
+--- Book.java ---
+
+public class Book {
+    private int id;
+    private String title;
+    private double price;
+
+    public Book() {}
+
+    public Book(int id, String title, double price) {
+        this.id = id;
+        this.title = title;
+        this.price = price;
+    }
+
+    public Book(String title, double price) {
+        this.title = title;
+        this.price = price;
+    }
+
+    // getters y setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price;}
+
+}
+
+--- DBConnection.java ----
+
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+public class DBConnection {
+    private static final String URL = "jdbc:mysql://localhost:3308/dblibrarycs1";
+    private static final String USER = "root";
+    private static final String PASSWORD = "";
+
+    public static Connection getConnection() {
+        try {
+            return DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (Exception e) {
+            System.out.println("Error conexión: " + e.getMessage());
+            return null;
+        }
+    }
+
+}
+
+--- BookDAO.java ----
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+
+
+public class BookDAO {
+
+     public void create(Book book) {
+        String sql = "INSERT INTO book(title, price) VALUES (?, ?)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, book.getTitle());
+            ps.setDouble(2, book.getPrice());
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public List<Book> findAll() {
+        List<Book> list = new ArrayList<>();
+        String sql = "SELECT * FROM book";
+
+        try (Connection conn = DBConnection.getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            while (rs.next()) {
+                list.add(new Book(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getDouble("price")
+                ));
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return list;
+    }
+
+    public Book findById(int id) {
+
+        String sql = "SELECT * FROM book WHERE id = ?";
+        Book book = null;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                book = new Book(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getDouble("price")
+                );
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error FIND BY ID: " + e.getMessage());
+        }
+
+        return book;
+    }
+
+    public void update(Book book) {
+        String sql = "UPDATE book SET title=?, price=? WHERE id=?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, book.getTitle());
+            ps.setDouble(2, book.getPrice());
+            ps.setInt(3, book.getId());
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    public void delete(int id) {
+        String sql = "DELETE FROM book WHERE id=?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+}
+
+--- BookController.java ---
+
+import java.util.List;
+
+public class BookController {
+    private BookDAO dao = new BookDAO();
+
+    public void save(String title, double price) {
+        dao.create(new Book(title, price));
+    }
+
+    public List<Book> list() {
+        return dao.findAll();
+    }
+
+    public Book findById(int id) {
+        return dao.findById(id);
+    }
+
+    public void update(int id, String title, double price) {
+        dao.update(new Book(id, title, price));
+    }
+
+    public void delete(int id) {
+        dao.delete(id);
+    }
+
+}
+
+--- BookView.java ---
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.table.DefaultTableModel;
+//import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+
+public class BookView extends JFrame{
+    private JTextField txtTitle, txtPrice;
+    private JTextField txtId;
+    private JTable table;
+    private DefaultTableModel model;
+    private BookController controller = new BookController();
+
+    public BookView() {
+
+        setTitle("CRUD de Libros");
+        setSize(800, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        setLayout(new BorderLayout());
+
+        // 🔹 Panel superior (formulario)
+        JPanel topPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+
+        txtId = new JTextField();
+        txtTitle = new JTextField();
+        txtPrice = new JTextField();
+
+        topPanel.add(new JLabel("Id Libro a Buscar:"));
+        topPanel.add(txtId);
+        topPanel.add(new JLabel("Título:"));
+        topPanel.add(txtTitle);
+        topPanel.add(new JLabel("Precio:"));
+        topPanel.add(txtPrice);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        // 🔹 Tabla
+        model = new DefaultTableModel(new String[]{"ID", "Título", "Precio"}, 0);
+        table = new JTable(model);
+
+        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // 🔹 Botones
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 10, 10));
+
+        JButton btnAdd = new JButton("Agregar");
+        JButton btnUpdate = new JButton("Actualizar");
+        JButton btnDelete = new JButton("Eliminar");
+        JButton btnSearch = new JButton("Buscar");
+        JButton btnRefresh = new JButton("Refrescar");
+
+        buttonPanel.add(btnAdd);
+        buttonPanel.add(btnUpdate);
+        buttonPanel.add(btnDelete);
+        buttonPanel.add(btnSearch);
+        buttonPanel.add(btnRefresh);
+
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        // Eventos
+        btnAdd.addActionListener(e -> addBook());
+        btnUpdate.addActionListener(e -> updateBook());
+        btnDelete.addActionListener(e -> deleteBook());
+        btnSearch.addActionListener(e -> searchBook());
+        btnRefresh.addActionListener(e -> loadData());
+
+        loadData();
+    }
+
+    private void addBook() {
+        String title = txtTitle.getText().trim();
+        String priceText = txtPrice.getText().trim();
+
+        // Validar título obligatorio
+        if (title.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El título es obligatorio");
+            return;
+        }
+
+        // Validar precio obligatorio
+        if (priceText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El precio es obligatorio");
+            return;
+        }
+
+        // Validar que sea número
+        double price;
+
+        try {
+            price = Double.parseDouble(priceText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "El precio debe ser numérico");
+            return;
+        }
+
+        controller.save(title, price);
+        JOptionPane.showMessageDialog(this, "Libro guardado correctamente");
+        loadData();
+    }
+
+    private void updateBook() {
+
+        String idText = txtId.getText().trim();
+        String title = txtTitle.getText().trim();
+        String priceText = txtPrice.getText().trim();
+
+        // Validaciones
+        if (idText.isEmpty() || title.isEmpty() || priceText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios");
+            return;
+        }
+
+        int id;
+        double price;
+
+        try {
+            id = Integer.parseInt(idText);
+            price = Double.parseDouble(priceText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "ID o precio inválido");
+            return;
+        }
+
+        // Confirmación
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                "¿Desea actualizar el libro ID: " + id + "?",
+                "Confirmar actualización",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (option != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        // Usar datos modificados del form
+        controller.update(id, title, price);
+
+        JOptionPane.showMessageDialog(this, "Libro actualizado correctamente");
+
+        loadData();
+        clearFields();
+    }
+
+    private void deleteBook() {
+        String idText = txtId.getText().trim();
+
+        // Validar que haya ID
+        if (idText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Ingrese o busque un ID primero");
+            return;
+        }
+
+        int id;
+
+        // Validar que sea número
+        try {
+            id = Integer.parseInt(idText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "ID inválido");
+            return;
+        }
+
+        // Confirmación
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                "¿Está seguro de eliminar el libro con ID: " + id + "?",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (option != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        // Eliminar
+        controller.delete(id);
+
+        JOptionPane.showMessageDialog(this, "Libro eliminado correctamente");
+
+        loadData();
+        clearFields();
+
+    }
+
+    private void searchBook() {
+        try {
+            int id = Integer.parseInt(txtId.getText());
+
+            Book book = controller.findById(id);
+
+            if (book != null) {
+                txtTitle.setText(book.getTitle());
+                txtPrice.setText(String.valueOf(book.getPrice()));
+            } else {
+                JOptionPane.showMessageDialog(this, "Libro no encontrado");
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ingrese un ID válido");
+        }
+    }
+
+    private void loadData() {
+        model.setRowCount(0);
+        for (Book b : controller.list()) {
+            model.addRow(new Object[]{b.getId(), b.getTitle(), b.getPrice()});
+        }
+    }
+    private void clearFields() {
+        txtId.setText("");
+        txtTitle.setText("");
+        txtPrice.setText("");
+    }
+
+}
+
+--- Main.java ---
+
+public class Main {
+    public static void main(String[] args) {
+        new BookView().setVisible(true);
+        //System.out.println("Hola Mundo");
+    }
+}
