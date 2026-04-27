@@ -1,215 +1,199 @@
 package com.library;
 
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
-import javafx.scene.layout.Border;
+public class BookView extends JFrame {
 
-public class BookView extends JFrame{
-
-    private JTextField txtTitle, txtPrice;
-    private JTextField txtId;
+    private JTextField txtId, txtTitle, txtPrice;
     private JTable table;
     private DefaultTableModel model;
-    private BookController controller = new BookController();
+    private final BookController controller = new BookController();
 
-    public BookView () {
-        setTitle("CRUD de libros");
-        setSize(800,500);   
+    // 🎨 Colores modernos
+    private final Color PRIMARY = new Color(52, 152, 219);
+    private final Color SUCCESS = new Color(46, 204, 113);
+    private final Color DANGER = new Color(231, 76, 60);
+    private final Color WARNING = new Color(241, 196, 15);
+    private final Color BG = new Color(245, 247, 250);
+
+    public BookView() {
+        initUI();
+        loadData();
+    }
+
+    private void initUI() {
+        setTitle("📚 Gestión de Libros");
+        setSize(900, 550);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        setLayout(new BorderLayout());
+        getContentPane().setBackground(BG);
+        setLayout(new BorderLayout(15, 15));
 
-        // 🔹 Panel superior (formulario)
-        JPanel topPanel = new JPanel(new GridLayout(3, 2, 10, 10));
-
-        txtId = new JTextField();
-        txtTitle = new JTextField();
-        txtPrice = new JTextField();
-
-        topPanel.add(new JLabel("Id Libro a Buscar:"));
-        topPanel.add(txtId);
-        topPanel.add(new JLabel("Título:"));
-        topPanel.add(txtTitle);
-        topPanel.add(new JLabel("Precio:"));
-        topPanel.add(txtPrice);
-
-        add(topPanel, BorderLayout.NORTH);
-
-        // 🔹 Tabla
-        model = new DefaultTableModel(new String[]{"ID", "Título", "Precio"}, 0);
-        table = new JTable(model);
-
-        add(new JScrollPane(table), BorderLayout.CENTER);
-
-        // 🔹 Botones
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 10, 10));
-
-        JButton btnAdd = new JButton("Agregar");
-        JButton btnUpdate = new JButton("Actualizar");
-        JButton btnDelete = new JButton("Eliminar");
-        JButton btnSearch = new JButton("Buscar");
-        JButton btnRefresh = new JButton("Refrescar");
-
-        buttonPanel.add(btnAdd);
-        buttonPanel.add(btnUpdate);
-        buttonPanel.add(btnDelete);
-        buttonPanel.add(btnSearch);
-        buttonPanel.add(btnRefresh);
-
-        add(buttonPanel, BorderLayout.SOUTH);
-
-        // Eventos
-        btnAdd.addActionListener(e -> addBook());
-        btnUpdate.addActionListener(e -> updateBook());
-        btnDelete.addActionListener(e -> deleteBook());
-        btnSearch.addActionListener(e -> searchBook());
-        btnRefresh.addActionListener(e -> loadData());
-
-        loadData();
-
+        add(createHeader(), BorderLayout.NORTH);
+        add(createCenterPanel(), BorderLayout.CENTER);
+        add(createButtonPanel(), BorderLayout.SOUTH);
     }
 
+    private JPanel createHeader() {
+        JPanel panel = new JPanel();
+        panel.setBackground(PRIMARY);
+        panel.setPreferredSize(new Dimension(100, 60));
+
+        JLabel title = new JLabel("Sistema de Gestión de Libros");
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+
+        panel.add(title);
+        return panel;
+    }
+
+    private JPanel createCenterPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 15, 15));
+        panel.setBackground(BG);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        panel.add(createFormPanel());
+        panel.add(createTablePanel());
+
+        return panel;
+    }
+
+    private JPanel createFormPanel() {
+        JPanel panel = new JPanel(new GridLayout(6, 1, 10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220)),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        JLabel title = new JLabel("Datos del Libro");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+
+        txtId = createTextField("ID");
+        txtTitle = createTextField("Título");
+        txtPrice = createTextField("Precio");
+
+        panel.add(title);
+        panel.add(txtId);
+        panel.add(txtTitle);
+        panel.add(txtPrice);
+
+        return panel;
+    }
+
+    private JScrollPane createTablePanel() {
+        model = new DefaultTableModel(new String[]{"ID", "Título", "Precio"}, 0) {
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+
+        table = new JTable(model);
+        table.setRowHeight(28);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+
+        return scroll;
+    }
+
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 5, 10, 10));
+        panel.setBackground(BG);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        panel.add(createButton("Agregar", SUCCESS, e -> addBook()));
+        panel.add(createButton("Actualizar", PRIMARY, e -> updateBook()));
+        panel.add(createButton("Eliminar", DANGER, e -> deleteBook()));
+        panel.add(createButton("Buscar", WARNING, e -> searchBook()));
+        panel.add(createButton("Refrescar", Color.GRAY, e -> loadData()));
+
+        return panel;
+    }
+
+    private JTextField createTextField(String placeholder) {
+        JTextField field = new JTextField();
+        field.setBorder(BorderFactory.createTitledBorder(placeholder));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        return field;
+    }
+
+    private JButton createButton(String text, Color color, java.awt.event.ActionListener action) {
+        JButton btn = new JButton(text);
+        btn.setBackground(color);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.addActionListener(action);
+        return btn;
+    }
+
+    // 🔹 Lógica (igual que antes)
+
     private void addBook() {
-        String title = txtTitle.getText().trim();
-        String priceText = txtPrice.getText().trim();
-
-        // Validar título obligatorio
-        if (title.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El título es obligatorio");
-            return;
-        }
-
-        // Validar precio obligatorio
-        if (priceText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El precio es obligatorio");
-            return;
-        }
-
-        // Validar que sea número
-        double price;
-
         try {
-            price = Double.parseDouble(priceText);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "El precio debe ser numérico");
-            return;
-        }
+            String title = txtTitle.getText().trim();
+            double price = Double.parseDouble(txtPrice.getText().trim());
 
-        controller.createSave(title, price);
-        JOptionPane.showMessageDialog(this, "Libro guardado correctamente");
-        loadData();
+            controller.createSave(title, price);
+            showMessage("Libro agregado");
+            loadData();
+            clearFields();
+
+        } catch (Exception e) {
+            showMessage("Datos inválidos");
+        }
     }
 
     private void updateBook() {
-
-        String idText = txtId.getText().trim();
-        String title = txtTitle.getText().trim();
-        String priceText = txtPrice.getText().trim();
-
-        // Validaciones
-        if (idText.isEmpty() || title.isEmpty() || priceText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios");
-            return;
-        }
-
-        int id;
-        double price;
-
         try {
-            id = Integer.parseInt(idText);
-            price = Double.parseDouble(priceText);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "ID o precio inválido");
-            return;
+            int id = Integer.parseInt(txtId.getText().trim());
+            String title = txtTitle.getText().trim();
+            double price = Double.parseDouble(txtPrice.getText().trim());
+
+            controller.update(id, title, price);
+            showMessage("Libro actualizado");
+            loadData();
+            clearFields();
+
+        } catch (Exception e) {
+            showMessage("Error al actualizar");
         }
-
-        // Confirmación
-        int option = JOptionPane.showConfirmDialog(
-                this,
-                "¿Desea actualizar el libro ID: " + id + "?",
-                "Confirmar actualización",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (option != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        // Usar datos modificados del form
-        controller.update(id, title, price);
-
-        JOptionPane.showMessageDialog(this, "Libro actualizado correctamente");
-
-        loadData();
-        clearFields();
     }
 
     private void deleteBook() {
-        String idText = txtId.getText().trim();
-
-        // Validar que haya ID
-        if (idText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Ingrese o busque un ID primero");
-            return;
-        }
-
-        int id;
-
-        // Validar que sea número
         try {
-            id = Integer.parseInt(idText);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "ID inválido");
-            return;
+            int id = Integer.parseInt(txtId.getText().trim());
+
+            controller.delete(id);
+            showMessage("Libro eliminado");
+            loadData();
+            clearFields();
+
+        } catch (Exception e) {
+            showMessage("Error al eliminar");
         }
-
-        // Confirmación
-        int option = JOptionPane.showConfirmDialog(
-                this,
-                "¿Está seguro de eliminar el libro con ID: " + id + "?",
-                "Confirmar eliminación",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (option != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        // Eliminar
-        controller.delete(id);
-
-        JOptionPane.showMessageDialog(this, "Libro eliminado correctamente");
-
-        loadData();
-        clearFields();
-
     }
 
     private void searchBook() {
         try {
-            int id = Integer.parseInt(txtId.getText());
+            int id = Integer.parseInt(txtId.getText().trim());
+            Book b = controller.findById(id);
 
-            Book book = controller.findById(id);
-
-            if (book != null) {
-                txtTitle.setText(book.getTittle());
-                txtPrice.setText(String.valueOf(book.getPrice()));
+            if (b != null) {
+                txtTitle.setText(b.getTittle());
+                txtPrice.setText(String.valueOf(b.getPrice()));
             } else {
-                JOptionPane.showMessageDialog(this, "Libro no encontrado");
+                showMessage("No encontrado");
             }
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Ingrese un ID válido");
+            showMessage("ID inválido");
         }
     }
 
@@ -219,12 +203,14 @@ public class BookView extends JFrame{
             model.addRow(new Object[]{b.getId(), b.getTittle(), b.getPrice()});
         }
     }
+
     private void clearFields() {
         txtId.setText("");
         txtTitle.setText("");
         txtPrice.setText("");
     }
-    
 
-
+    private void showMessage(String msg) {
+        JOptionPane.showMessageDialog(this, msg);
+    }
 }
